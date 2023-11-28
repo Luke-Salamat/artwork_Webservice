@@ -1,0 +1,414 @@
+openapi: 3.0.0
+info: 
+  title: Artwork Information API
+  description: "A standardized and secure Artwork Information API that allows authorized businesses to retrieve and manage artwork data"
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://artInf.com/terms/
+  contact:
+    email: 200620247@my.xu.edu.ph
+    name: the Team
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: Art
+    description: "Everything about Artworks"
+  - name: Users
+    description: "Operations about user"
+paths:
+  /artwork:
+    get:
+      tags:
+        - Art
+      summary: Get a list of artwork with specific filters
+      operationId: getArtwork
+      parameters:
+        - name: api_key
+          in: header
+          description: API key
+          required: true
+          schema:
+            type: string
+        - name: artworkId
+          in: query
+          description: Find by artworkId
+          schema:
+            type: integer
+          required: true
+        - name: color
+          description: Find by color
+          in: query
+          schema:
+            type: string    
+        - name: era
+          in: query
+          description: Find by era
+          schema:
+            type: string  
+        - name: artist
+          in: query
+          description: Find by artist
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 200 response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Artwork'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Artwork'
+        '400':
+          description: "artworkId doesn't exist"
+        '500':
+          description: "Server Error"
+      security:
+        - api_key: []
+        - art_auth:
+            - write:artwork
+            - read:artwork  
+  /artwork/{artworkId}:  
+    delete:
+        tags:
+          - Art
+        summary: deletes an artwork
+        description: delete an artwork
+        operationId: deleteArtwork
+        parameters:
+          - name: api_key
+            in: header
+            description: API key
+            required: true
+            schema:
+              type: string
+          - name: artworkId
+            in: path
+            description: Artwork id to delete
+            required: true
+            schema:
+              type: integer
+              format: int64
+        responses:
+          '400':
+            description: Invalid artworkId
+        security:
+          - art_auth:
+              - write:artwork
+              - read:artwork
+  /artwork/addArtwork:
+    post:
+      tags:
+        - Art
+      summary: add a new artwork to the auction house
+      description: add a new artwork to the auction house
+      operationId: addArtwork
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Artwork'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Artwork'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Artwork'
+      responses:
+        "200":
+          description: 200 response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Artwork'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Artwork'
+        '400':
+          description: "artwork already Exist"
+        '404':
+          description: "artwork not found"
+        '500':
+          description: "Server Error"
+      security:
+        - art_auth:
+            - write:artwork
+            - read:artwork
+  /artwork/updateArtwork:
+    put:
+      tags:
+        - Art
+      summary: Update an existing artwork by Id
+      description: Update an exisiting artwork by Id
+      operationId: updateArtwork
+      requestBody:
+        description: Update an existent artwork
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Artwork'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Artwork'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Artwork'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Artwork'          
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Artwork'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Artwork not found
+        '405':
+          description: Validation exception
+      security:
+        - art_auth:
+            - write:artwork
+            - read:artwork
+  /user/register:
+    post:
+      summary: Register a new user.
+      tags:
+        - Users
+      requestBody:
+        description: User registration
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: User registered successfully.
+        '400':
+          description: Client error.
+        '500':
+          description: Internal server error.
+  /user/login:
+    post:
+      summary: Login with username and password.
+      tags:
+        - Users
+      requestBody:
+        description: User login
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful.
+        '401':
+          description: Invalid username or password.
+        '500':
+          description: Internal server error.
+  /user/edit:
+    put:
+      tags:
+        - Users
+      summary: Update an existing user
+      description: Update an exisiting user via username
+      operationId: updateUser
+      requestBody:
+        description: Update an existent user
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/user'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/user'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/user'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user'          
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/user'
+        '400':
+          description: Invalid username supplied
+        '404':
+          description: User not found
+        '405':
+          description: Validation exception
+      security:
+        - art_auth:
+            - write:user
+            - read:user
+  /user/delete{username}:
+    delete:
+        tags:
+          - Users
+        summary: deletes a user
+        description: delete a user
+        operationId: deleteUser
+        parameters:
+          - name: api_key
+            in: header
+            description: API key
+            required: true
+            schema:
+              type: string
+          - name: username
+            in: path
+            description: delete via username
+            required: true
+            schema:
+              type: string
+        responses:
+          '400':
+            description: Invalid username
+        security:
+          - art_auth:
+              - write:user
+              - read:user
+components:
+  schemas:
+    Artwork:
+      type: object
+      properties:
+        artworkId:
+          type: integer
+          format: int64
+          example: 2023001
+        title:
+          type: string
+          description: "title of the artwork"
+          example: Tears!
+        completionDate:
+          type: string
+          format: date
+          description: "Date the artwork is created"
+          example: 2002-1-28
+        color:
+          type: string
+          description: "What color to filter"
+          example: blue
+          enum: 
+            - blue
+            - yellow
+            - green
+        medium:
+          type: string
+          description: "Material used to create the artwork"
+          example: Oil in Canvas
+        dimensions:
+          type: string
+          description: "The dimensions of the artwork"
+        category:
+          type: string
+          description: "Type of artwork"
+          example: painting
+        era:
+          type: string
+          description: "Time period the artwork was created"
+          example: Medieval
+          enum:
+            - Renaissance
+            - Romanticism
+            - Baroque
+            - Realism
+            - Symbolism
+            - Futurism
+            - Contemporary Art
+        location:
+          type: string
+          description: "Current location of an artwork"
+          example: Louvre Museum, Paris
+        image:
+          type: string
+          format: binary
+          description: "Image of the artwork"
+          example: https://artincontext.org/wp-content/uploads/2021/09/The-Birth-of-Venus-Botticelli.jpg
+        price:
+          type: string
+          example: $100
+        previousOwners:
+          type: string
+          description: "Name of previous owners"
+          example: Leonardo de Capricorn
+        artistBirthdate:
+          type: integer
+          format: date
+          description: "Birthdate of Artist"
+          example: 1853-1-30
+        provenance:
+          type: integer
+          description: " true if there is documentation or evidences   that authenticates a particular artwork, otherwise false."
+          example: true
+      xml:
+        name: artwork  
+    user:
+      type: object
+      properties:
+        username:
+          type: string
+          example: theUser
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: James
+        email:
+          type: string
+          example: doe@email.com
+        password:
+          type: string
+          example: '12345'
+        phone:
+          type: string
+          example: '12345'
+        userStatus:
+          type: string
+          description: User Status
+          example: online
+          enum:
+            - online
+            - offline
+      xml:
+        name: user
+  securitySchemes:
+    art_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://artInf.com/oauth/authorize
+          scopes:
+            write:artwork: modify artwork in your account
+            read:artwork: read artwork
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
+  
