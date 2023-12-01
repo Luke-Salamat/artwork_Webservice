@@ -4,59 +4,80 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 api = Api(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ars.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///artwork.db'
 db = SQLAlchemy(app)
 
 
 class ArtworkModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    category = db.Column(db.String(50))
     title = db.Column(db.String(100))
     artist = db.Column(db.String(100))
     artistOrigin = db.Column(db.String(100))
-    provenance = db.Column(db.String(100))
+    provenance = db.Column(db.String(5))
     medium = db.Column(db.String(100))
-    category = db.Column(db.String(50))
     completionDate = db.Column(db.String(50))
     era = db.Column(db.String(50))
     color = db.Column(db.String(50))
     dimensions = db.Column(db.String(50))
     location = db.Column(db.String(50))
     image = db.Column(db.String(50))
-    highestValue = db.Column(db.String(50))
+    startingbid = db.Column(db.String(50))
     
 # remove this comment to create local database
 # with app.app_context():
 #     db.create_all()
 
-post_artwork = reqparse.RequestParser()
-post_artwork.add_argument("title", type=str, help="title required", required=True)
-post_artwork.add_argument("color", type=str, help="color required", required=True)
-post_artwork.add_argument("medium", type=str, help="medium required", required=True)
-post_artwork.add_argument("era", type=str, help="era required", required=True)
-
-put_artwork = reqparse.RequestParser()
-put_artwork.add_argument("title", type=str)
-put_artwork.add_argument("color", type=str)
-put_artwork.add_argument("medium", type=str)
-put_artwork.add_argument("era", type=str)
-
 resource_fields = {
     'id': fields.Integer,
+    'category': fields.String,
     'title': fields.String,
     'artist': fields.String,
     'artistOrigin': fields.String,
     'provenance': fields.String,
     'medium': fields.String,
-    'category': fields.String,
     'completionDate': fields.String,
     'era': fields.String,
     'color': fields.String,
     'dimensions': fields.String,
     'location': fields.String,
     'image': fields.String,
-    'highestValue': fields.String,
-
+    'startingbid': fields.String,
 }
+
+
+
+post_artwork = reqparse.RequestParser()
+post_artwork.add_argument("title", type=str, help="title required", required=True)
+post_artwork.add_argument("category", type=str, help="category required", required=True)
+post_artwork.add_argument("artist", type=str, help="artist required", required=True)
+post_artwork.add_argument("artistOrigin", type=str, help="artistOrigin required", required=True)
+post_artwork.add_argument("provenance", type=str, help="provenance required", required=True)
+post_artwork.add_argument("medium", type=str, help="medium required", required=True)
+post_artwork.add_argument("completionDate", type=str, help="completionDate required", required=True)
+post_artwork.add_argument("era", type=str, help="era required", required=True)
+post_artwork.add_argument("medium", type=str, help="medium required", required=True)
+post_artwork.add_argument("color", type=str, help="color required", required=True)
+post_artwork.add_argument("dimensions", type=str, help="dimensions required", required=True)
+post_artwork.add_argument("location", type=str, help="location required", required=True)
+post_artwork.add_argument("image", type=str, help="image required", required=True)
+post_artwork.add_argument("startingbid", type=str, help="value required", required=True)
+
+put_artwork = reqparse.RequestParser()
+put_artwork.add_argument("title", type=str, help="title required", required=True)
+put_artwork.add_argument("title", type=str, help="category required", required=True)
+put_artwork.add_argument("artist", type=str, help="artist required", required=True)
+put_artwork.add_argument("artistOrigin", type=str, help="artistOrigin required", required=True)
+put_artwork.add_argument("provenance", type=str, help="provenance required", required=True)
+put_artwork.add_argument("medium", type=str, help="medium required", required=True)
+put_artwork.add_argument("completionDate", type=str, help="completionDate required", required=True)
+put_artwork.add_argument("era", type=str, help="era required", required=True)
+put_artwork.add_argument("medium", type=str, help="medium required", required=True)
+put_artwork.add_argument("color", type=str, help="color required", required=True)
+put_artwork.add_argument("dimensions", type=str, help="dimensions required", required=True)
+put_artwork.add_argument("location", type=str, help="location required", required=True)
+put_artwork.add_argument("image", type=str, help="image required", required=True)
+put_artwork.add_argument("startingbid", type=str, help="value required", required=True)
 
 class postArtwork(Resource):   
     @marshal_with(resource_fields)
@@ -65,65 +86,59 @@ class postArtwork(Resource):
         artExist = ArtworkModel.query.filter_by(id=art_id).first()
         if artExist:
             abort(409, message="Artwork id taken")
-        newArt = ArtworkModel(id=art_id, title=args['title'], artist=args['artist'], artistOrigin=args['artistOrigin'], provenance=args['provenance'], medium=args['medium'], category=args['category'], completionDate=args['completionDate'], era=args['era'], color=args['color'], dimensions=args['dimensions'], location=args['location'], image=args['image'], highestValue=args['highestValue'])
+            
+        if args['provenance'] not in ('true', 'false'):
+            abort(400, message="Invalid provenance value") 
+            
+        if args['category'] not in ('painting', 'sculpture', 'drawing'):
+            abort(400, message="Invalid category value")     
+        newArt = ArtworkModel(id=art_id, category=args['category'], title=args['title'], artist=args['artist'], artistOrigin=args['artistOrigin'], provenance=args['provenance'], medium=args['medium'], completionDate=args['completionDate'], era=args['era'], color=args['color'], dimensions=args['dimensions'], location=args['location'], image=args['image'], startingbid=args['startingbid'])
         db.session.add(newArt)
         db.session.commit()
         return newArt, 201
-
-     
-class artworkList(Resource):
-    @marshal_with(resource_fields)
-    def get(self):
-        collections = ArtworkModel.query.all()
-        artworks = {}
-        for artwork in collections:
-            artworks[artwork.id] = {'title': artwork.title, 'artist': artwork.artist, 'artistOrigin': artwork.artistOrigin, 'provenance': artwork.provenance, 'medium': artwork.medium, 'category': artwork.category, 'completionDate': artwork.completionDate, 'era': artwork.era, 'color': artwork.color, 'dimensions': artwork.dimensions, 'location': artwork.location, 'image': artwork.image, 'highestValue': artwork.highestValue}
-        return artworks    
             
             
 class getArtwork(Resource):
     @marshal_with(resource_fields)
     def get(self):
         art_id = request.args.get('id')
-        title = request.args.get('title')
+        artist = request.args.get('artist')
         era = request.args.get('era')
-        color = request.args.get('color')   
-    
-        if art_id and title and era and color:
-            collections = ArtworkModel.query.all()
-            artworks = {}
-            for artwork in collections:
-                artworks[artwork.id] = {'title': artwork.title, 'artist': artwork.artist, 'artistOrigin': artwork.artistOrigin, 'provenance': artwork.provenance, 'medium': artwork.medium, 'category': artwork.category, 'completionDate': artwork.completionDate, 'era': artwork.era, 'color': artwork.color, 'dimensions': artwork.dimensions, 'location': artwork.location, 'image': artwork.image, 'highestValue': artwork.highestValue}
-            return artworks
-
-        if not art_id and not title and not era and not color:
-            abort(400, message="Provide either art_id or title")
+        color = request.args.get('color')
+        category = request.args.get('category')
 
         if art_id:
             artwork = ArtworkModel.query.get(art_id)
             if not artwork:
                 abort(404, message="Artwork id doesn't exist")
             return artwork,200
-       
-
-        if title:
-            artwork = ArtworkModel.query.filter_by(title=title).first()
+        elif category:
+            artwork = ArtworkModel.query.filter_by(category=category).all()
             if not artwork:
-                abort(404, message="Artwork title doesn't exist")
+                abort(404, message="Artwork category doesn't exist")
             return artwork, 200
-        
-        if era:
-            artwork = ArtworkModel.query.filter_by(era=era).first()
+        elif artist:
+            artwork = ArtworkModel.query.filter(ArtworkModel.artist.contains(artist)).all()
             if not artwork:
-                abort(404, message="Artwork era doesn't exist")
+                abort(404, message="Artwork artist doesn't exist")
             return artwork, 200
-        
-        if color:
-            artwork = ArtworkModel.query.filter_by(color=color).first()
+        elif era:
+            artwork = ArtworkModel.query.filter(ArtworkModel.era.contains(era)).all()
             if not artwork:
                 abort(404, message="Artwork era doesn't exist")
             return artwork, 200
-
+        elif color:
+            artwork = ArtworkModel.query.filter(ArtworkModel.color.contains(color)).all()
+            if not artwork:
+                abort(404, message="Artwork color doesn't exist")
+            return artwork, 200
+        else:
+            collections = ArtworkModel.query.all()
+            artworks = {}
+            for artwork in collections:
+                artworks[artwork] = {"id": artwork.id, "title": artwork.title, "artist": artwork.artist, "artistOrigin": artwork.artistOrigin, "provenance": artwork.provenance, "medium": artwork.medium, "completionDate": artwork.completionDate, "era": artwork.era, "color": artwork.color, "dimensions": artwork.dimensions, "location": artwork.location, "image": artwork.image, "startingbid": artwork.startingbid}
+            return collections
+        
 class putArtwork(Resource):
     @marshal_with(resource_fields)
     def put(self, art_id):
@@ -144,9 +159,7 @@ class putArtwork(Resource):
         if 'provenance' in update_data:
             artwork.provenance = update_data['provenance']
         if 'medium' in update_data:
-            artwork.medium = update_data['medium']
-        if 'category' in update_data:
-            artwork.category = update_data['category']        
+            artwork.medium = update_data['medium']    
         if 'completionDate' in update_data:
             artwork.comepletionDate = update_data['completionDate']
         if 'color' in update_data:
@@ -159,8 +172,8 @@ class putArtwork(Resource):
             artwork.location = update_data['location']
         if 'image' in update_data:
             artwork.image = update_data['image']
-        if 'highestValue' in update_data:
-            artwork.highestValue = update_data['highestValue']
+        if 'startingbid' in update_data:
+            artwork.startingbid = update_data['startingbid']
         db.session.commit()
         return artwork, 200
 
@@ -180,7 +193,7 @@ api.add_resource(deleteArtwork, '/artwork/<int:art_id>')
 api.add_resource(postArtwork, '/artwork/<int:art_id>')
 api.add_resource(putArtwork, '/artwork/<int:art_id>')
 api.add_resource(getArtwork, '/artwork')
-api.add_resource(artworkList, '/artwork/list')
+
 
 
 
