@@ -1,11 +1,27 @@
-from flask import Flask, request
+from flask import Flask, redirect, render_template, request, url_for
 from flask_restful import Resource, Api, reqparse, abort, fields, marshal_with
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import InputRequired, Length, ValidationError
+from flask_bcrypt import Bcrypt
 
 app = Flask(__name__)
 api = Api(app)
+bcrypt = Bcrypt(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///artwork.db'
+app.config['SECRET_KEY'] = 'Secretkey'
 db = SQLAlchemy(app)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 
 
 class ArtworkModel(db.Model):
@@ -24,7 +40,13 @@ class ArtworkModel(db.Model):
     image = db.Column(db.String(50))
     startingbid = db.Column(db.String(50))
     
-# remove this comment to create local database
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(30), nullable=False, unique=True)
+    password = db.Column(db.String(80), nullable=False)
+    
+    
+# # remove this comment to create local database
 # with app.app_context():
 #     db.create_all()
 
@@ -79,6 +101,76 @@ put_artwork.add_argument("location", type=str, help="location required", require
 put_artwork.add_argument("image", type=str, help="image required", required=True)
 put_artwork.add_argument("startingbid", type=str, help="value required", required=True)
 
+
+class RegisterForm(FlaskForm):
+    email = StringField(validators=[InputRequired(), Length(min=10, max=30)], render_kw={"placeholder": "Email"})
+    password = PasswordField(validators=[InputRequired(), Length(min=10, max=20)], render_kw={"placeholder": "Password"})
+    
+    submit = SubmitField("Register")
+    
+    def validate_email(self, email):
+        existing_email = User.query.filter_by(email=email.data).first()
+        
+        if existing_email:
+            raise ValidationError("Email already exists")
+    
+
+class LoginForm(FlaskForm):
+    email = StringField(validators=[InputRequired(), Length(min=10, max=30)], render_kw={"placeholder": "Email"})
+    password = PasswordField(validators=[InputRequired(), Length(min=10, max=20)], render_kw={"placeholder": "Password"})
+    
+    submit = SubmitField("Login")
+
+
+
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+@app.route('/dashboard', methods=['GET', 'POST'])
+@login_required
+def dashboard():
+    return render_template('dashboard.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+
+    
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user:
+            if bcrypt.check_password_hash(user.password, form.password.data):
+                login_user(user)
+                return redirect(url_for('dashboard'))
+    
+    return render_template('login.html', form=form)    
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegisterForm()
+    
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data)
+        new_user = User(email=form.email.data, password=hashed_password)
+        db.session.add(new_user)
+        db.session.commit()
+        return redirect(url_for('login'))
+    
+    return render_template('register.html', form=form) 
+    
+
+    
+
 class postArtwork(Resource):   
     @marshal_with(resource_fields)
     def post(self, art_id):
@@ -91,13 +183,15 @@ class postArtwork(Resource):
             abort(400, message="Invalid provenance value") 
             
         if args['category'] not in ('painting', 'sculpture', 'drawing'):
-            abort(400, message="Invalid category value")     
+            abort(400, message="Invalid category value")  
+            
+        if args['color'] not in ('warm', 'cool', 'complementary'):
+            abort(400, message="Invalid color value")       
         newArt = ArtworkModel(id=art_id, category=args['category'], title=args['title'], artist=args['artist'], artistOrigin=args['artistOrigin'], provenance=args['provenance'], medium=args['medium'], completionDate=args['completionDate'], era=args['era'], color=args['color'], dimensions=args['dimensions'], location=args['location'], image=args['image'], startingbid=args['startingbid'])
         db.session.add(newArt)
         db.session.commit()
         return newArt, 201
-            
-            
+                     
 class getArtwork(Resource):
     @marshal_with(resource_fields)
     def get(self):
@@ -193,6 +287,7 @@ api.add_resource(deleteArtwork, '/artwork/<int:art_id>')
 api.add_resource(postArtwork, '/artwork/<int:art_id>')
 api.add_resource(putArtwork, '/artwork/<int:art_id>')
 api.add_resource(getArtwork, '/artwork')
+
 
 
 
