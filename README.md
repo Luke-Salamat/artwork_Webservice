@@ -29,37 +29,3 @@ POST	/user/login	Log in a user with credentials.
 PUT	/user/edit	Update an existing user's details.
 DELETE	/user/delete{username}	Delete a user by their username.
 
-🧾 Schema Overview
-Artwork Object
-json
-Copy
-Edit
-{
-  "artworkId": 2023001,
-  "title": "Tears!",
-  "completionDate": "2002-01-28",
-  "color": "blue",
-  "medium": "Oil in Canvas",
-  "dimensions": "120cm x 100cm",
-  "category": "painting",
-  "era": "Medieval",
-  "location": "Louvre Museum, Paris",
-  "image": "https://example.com/artwork.jpg",
-  "price": "$100",
-  "previousOwners": "Leonardo de Capricorn",
-  "artistBirthdate": "1853-01-30",
-  "provenance": true
-}
-User Object
-json
-Copy
-Edit
-{
-  "username": "theUser",
-  "firstName": "John",
-  "lastName": "James",
-  "email": "doe@email.com",
-  "password": "12345",
-  "phone": "12345",
-  "userStatus": "online"
-}
